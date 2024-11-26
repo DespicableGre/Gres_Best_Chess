@@ -47,16 +47,19 @@ piece_dictionary = {0   : piece(" ",None,None)  ,   # Empty
 real_board = [
     [10,8,9,11,12,9,8,10],
     [7,7,7,7,7,7,7,7],
-    [0,0,0,0,1,0,0,0],
-    [0,0,0,0,1,0,0,0],
-    [0,0,0,0,1,0,0,0],
-    [0,0,0,0,1,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
     [1,1,1,1,1,1,1,1],
     [4,2,3,5,6,3,2,4]
     ]
 
+real_board.reverse()
+
 def update_board():
     global real_board
+    real_board.reverse() # cheeky. Also dont reverse maybe if multiplayering later idk
     updatedBoard = ""
     r = 0
     c = 0
@@ -83,6 +86,7 @@ def update_board():
         r += 1
 
         updatedBoard += "|\n\n"
+    real_board.reverse() # cheeky2
     updatedBoard += "     a    b    c    d    e    f    g    h"
     print(updatedBoard)
 
@@ -135,6 +139,71 @@ def interpreter(inp):
 
     print(_piece, _location, _capture, _destination)
 
+
+# All destinations should be input to the piece check def as tuples initially.
+
+def check_Spot(destination, piece):
+    global real_board
+    if real_board[destination[0]][destination[1]] == piece:
+        return True
+    else:
+        return False
+
+def check_Pawn(destination, piece):
+    global real_board
+
+    # (Spot below, Two below)
+    found = (None, None)
+
+    if check_Spot(destination, piece) == False or real_board.index(real_board[destination[0]]) == 0:
+        return found
+    else:
+        if check_Spot((destination[0]-1,destination[1]), piece):
+            found = (destination[0]-1, destination[1])
+        elif check_Spot((destination[0]-2,destination[1]), piece) and real_board.index(real_board[destination[0]]) >= 2:
+            # Make sure we dont go out of bounds with that        and
+            found = (destination[0]-2, destination[1])
+    return found
+
+def check_Rook(destination, piece):
+    global real_board
+
+    # None  -   No rooks in the same row/column
+    # False -   No more than 1 rooks in the same row/column
+    # True  -   More than 1 in the same row/column
+    #       (Same row relative to dest, Same column relative to dest)
+    found = (None, None)
+
+    if check_Spot(destination, piece) == True:
+        #return found
+        print("Found", piece, "at", Index2Coord(destination))
+    # else:
+        # Loop to check possible rooks
+    # Loop columns first
+    for spots in range(7 - destination[1]):
+        if check_Spot((destination[0],destination[1]+spots+1),piece):
+            print("found on column:", chr(destination[1]+spots+98))
+            if found == (found[0],False):
+                found = (found[0],True)
+                print(found)
+                break
+            else: 
+                found = (found[0],False)
+    # Then rows
+    for spots in range(7 - destination[0]):
+        if check_Spot((destination[0]+spots+1,destination[1]),piece):
+            print("found on row:", destination[0]+spots+1)
+            if found == (False,None):
+                found = (True, None)
+                print(found)
+                break
+            else: 
+                found = (False, None)
+
+check_Rook((0,0),4)
+
+# These are useless for now
+
 def checkColumn(piece, column, side_to_check = None):
     global real_board
     piece_to_check_for = piece
@@ -165,8 +234,12 @@ def checkRow(piece, row, side_to_check = None):
         if r == piece:
             print(r)
 
+
+# These are useless for now
+
 update_board()
-# interpreter(input())
+#interpreter(input())
+
 
 # Have checks for each piece.
 # These checks are checking destination availability first. (Wether or not capturing)
