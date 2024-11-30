@@ -14,7 +14,7 @@ class piece:
 def Index2Coord(row_column):
     if row_column[0] > 7 or row_column[0] < 0: return "Bruh, Index2Coord(*row_column), 0 ≤ row ≤ 7"
     if row_column[1] > 7 or row_column[1] < 0: return "Bruh2, Index2Coord(row_*column), 0 ≤ column ≤ 7"
-    return f"{chr(row_column[0] + 97)}{row_column[1]+1}"
+    return f"{chr(row_column[1] + 97)}{row_column[0]+1}"
 
 def Coord2Index(row_column):
     if len(row_column) != 2: return "Bruh, Coord2Index(*row_column*), must be 2 characters"
@@ -24,21 +24,12 @@ def Coord2Index(row_column):
     if c > 7 or c < 0: return "Bruh, Coord2Index(row_*column), second chara must be 0 ≤ row ≤ 7"
     return r,c
 
-def ForwardThenBackward(x, y): # 2018 LeBron fr
+def ForwardThenBackward(x,y): # 2018 LeBron fr
     _list = [0,1,2,3,4,5,6,7]
-    _list4 = []
-    _list2 = _list[:x]
-    _list3 = _list[x:]
-    _list3.remove(x)
-    _list4 = _list3 + _list2
+    _list2 = _list[x+1:] + list(reversed(_list[:x])) + _list[y+1:] + list(reversed(_list[:y]))
+    return _list2
+# Had knee surgery and fixed it
 
-    _list2 = _list[:y]
-    _list3 = _list[y:]
-    _list3.remove(y)
-    _list4 += _list3 + _list2
-    return _list4
-    # download ram!! free
-    
 # def ReturnColumn(TwoD_list, column):
 #     _list = []
 #     for row in TwoD_list:
@@ -81,12 +72,12 @@ real_board = [
 real_board = [
     [0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,2,0],
-    [4,0,0,0,1,0,0,0],
     [0,0,0,0,0,0,0,0],
-    [0,0,0,4,0,0,0,0],
     [0,0,0,0,0,0,0,0],
-    [4,0,0,0,0,5,0,0]
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,4,4,4,2,0,0]
     ]
 # DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER
 
@@ -213,56 +204,61 @@ def return_Spot(destination):
 #             found = (destination[0]-2, destination[1])
 #     return found
 
-def check_Horizontally(destination, piece):
+
+# Assuming destination is not already occupied
+def check_Straight(destination, piece, capture = False): # Calm down python
     global real_board
+    #       [row ,colu,capt]
+    found = [None,None,None]
 
-    # None  -   No rooks in the same row/column
-    # False -   No more than 1 rooks in the same row/column
-    # True  -   More than 1 in the same row/column
-    #       (Same row relative to dest, Same column relative to dest)
-    found = 0
-
-    if check_Spot_4_Any(destination):
-        print("Obstructed!")
-        print(f"Found piece: {piece_dictionary[return_Spot(destination)].fullName}, at", Index2Coord(destination))
-        return found
-    else:
+    if check_Spot_4_Any(destination) and check_Spot(destination, piece) == False and capture:
+        return True
+    
+    else: # Iterate through possible pieces that could also be in the destination given. Also check for piece (on the side).
         list_to_go_over = ForwardThenBackward(destination[0],destination[1])
-        print(list_to_go_over)
-        # Check row horizontally, then column vertically.
+        for rows in list_to_go_over[:7]:
+            spotIsAny = check_Spot_4_Any((rows, destination[1]))
+            spotIsPiece = check_Spot((rows, destination[1]),piece)
 
-check_Horizontally((1,1),4)
+            if spotIsAny and found[0] == None:
+                found[0] = 0
+            elif spotIsAny == False: continue
 
-# These are useless for now
-# def checkColumn(piece, column, side_to_check = None):
-#     global real_board
-#     piece_to_check_for = piece
-#     # Just in case
-#     if side_to_check == None: # Check for current side's pieces
-#         piece_to_check_for = piece_dictionary[piece] + (move % 2 * 6)
-#     elif side_to_check == True: # Check for White pieces
-#         piece_to_check_for = piece_dictionary[piece]
-#     elif side_to_check == False: # Check for Black pieces
-#         piece_to_check_for = piece_dictionary[piece] + 6
-#     #
-#     for r in real_board:
-#         if r[column] == piece_to_check_for:
-#             print(r[column])
+            if spotIsPiece and found[0] == 0:
+                found[0] = 1
+                found[2] = (rows,destination[1])
+            elif spotIsPiece and rows < destination[0] and found[0] == 1:
+                found[0] = 2
+                break
+            if found[1] == 1 and spotIsPiece:
+                found[2] = (rows,destination[0])
 
-# def checkRow(piece, row, side_to_check = None):
-#     global real_board
-#     piece_to_check_for = piece
-#     # Just in case
-#     if side_to_check == None: # Check for current side's pieces
-#         piece_to_check_for = piece_dictionary[piece] + (move % 2 * 6)
-#     elif side_to_check == True: # Check for White pieces
-#         piece_to_check_for = piece_dictionary[piece]
-#     elif side_to_check == False: # Check for Black pieces
-#         piece_to_check_for = piece_dictionary[piece] + 6
-#     #
-#     for r in real_board[7-row]:
-#         if r == piece:
-#             print(r)
+        for columns in list_to_go_over[7:]:
+            spotIsAny = check_Spot_4_Any((destination[0], columns))
+            spotIsPiece = check_Spot((destination[0], columns),piece)
+
+            if spotIsAny and found[1] == None:
+                found[1] = 0
+            elif spotIsAny == False: continue
+
+            if spotIsPiece and found[1] == 0:
+                found[1] = 1
+            elif spotIsPiece and columns < destination[1] and found[1] == 1:
+                found[1] = 2
+                break
+            if found[0] == 1 and spotIsPiece:
+                found[2] = (destination[1],columns)
+            # Arthritis yippe!
+
+    print(found)
+    return found
+
+# def check_Diagonally(destination, piece):
+#    Might need a completely new algorithm
+
+#update_board()
+check_Straight((3,3),4)
+print(Index2Coord((3,3)))
 
 
 update_board()
