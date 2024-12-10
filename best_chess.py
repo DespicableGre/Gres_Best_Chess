@@ -29,6 +29,21 @@ def ForwardThenBackward(x,y): # 2018 LeBron fr
     _list2 = _list[x+1:] + list(reversed(_list[:x])) + _list[y+1:] + list(reversed(_list[:y]))
     return _list2
 # Had knee surgery and fixed it
+def DiagonalFTB(x,y):
+    spacer = ['|']
+    _list = [0,1,2,3,4,5,6,7]
+    _list2 = []
+    if x+y-7 < 0:
+        _list2 = _list[x+1:x+y+1] + spacer + list(reversed(_list[:x])) + spacer + _list[x+1:x+1+min(7-x,7-y)] + spacer + list(reversed(_list[x-min(x,y):x]))
+    elif x+y-7 > 0:
+        _list2 = _list[x+1:] + spacer + list(reversed(_list[x+y-7:x])) + spacer + _list[x+1:x+min(7-x,7-y)+1] + spacer + list(reversed(_list[x-min(x,y):x]))
+    else:
+        _list2 = _list[x+1:] + spacer + list(reversed(_list[:x]))
+        if min(x,y) > 0:
+            _list2 += spacer + _list[x+min(7-x,7-y):] + spacer + list(reversed(_list[x-min(x,y):x]))
+        else:
+            _list2 += spacer + spacer
+    return _list2
 
 # def ReturnColumn(TwoD_list, column):
 #     _list = []
@@ -208,57 +223,78 @@ def return_Spot(destination):
 # Assuming destination is not already occupied
 def check_Straight(destination, piece, capture = False): # Calm down python
     global real_board
-    #       [row ,colu,capt]
     found = [None,None,None]
+    # Iterate through possible pieces that could also be in the destination given. Also check for piece (on the side).
+    list_to_go_over = ForwardThenBackward(destination[0],destination[1])
+    for rows in list_to_go_over[:7]:
+        spotIsAny = check_Spot_4_Any((rows, destination[1]))
+        spotIsPiece = check_Spot((rows, destination[1]),piece)
 
-    if check_Spot_4_Any(destination) and check_Spot(destination, piece) == False and capture:
-        return True
-    
-    else: # Iterate through possible pieces that could also be in the destination given. Also check for piece (on the side).
-        list_to_go_over = ForwardThenBackward(destination[0],destination[1])
-        for rows in list_to_go_over[:7]:
-            spotIsAny = check_Spot_4_Any((rows, destination[1]))
-            spotIsPiece = check_Spot((rows, destination[1]),piece)
+        if spotIsAny and found[0] == None:
+            found[0] = 0
+        elif spotIsAny == False: continue
 
-            if spotIsAny and found[0] == None:
-                found[0] = 0
-            elif spotIsAny == False: continue
+        if spotIsPiece and found[0] == 0:
+            found[0] = 1
+            found[2] = (rows,destination[1])
+        elif spotIsPiece and rows < destination[0] and found[0] == 1:
+            found[0] = 2
+            break
+        if found[1] == 1 and spotIsPiece:
+            found[2] = (rows,destination[0])
 
-            if spotIsPiece and found[0] == 0:
-                found[0] = 1
-                found[2] = (rows,destination[1])
-            elif spotIsPiece and rows < destination[0] and found[0] == 1:
-                found[0] = 2
-                break
-            if found[1] == 1 and spotIsPiece:
-                found[2] = (rows,destination[0])
+    for columns in list_to_go_over[7:]:
+        spotIsAny = check_Spot_4_Any((destination[0], columns))
+        spotIsPiece = check_Spot((destination[0], columns),piece)
 
-        for columns in list_to_go_over[7:]:
-            spotIsAny = check_Spot_4_Any((destination[0], columns))
-            spotIsPiece = check_Spot((destination[0], columns),piece)
+        if spotIsAny and found[1] == None:
+            found[1] = 0
+        elif spotIsAny == False: continue
 
-            if spotIsAny and found[1] == None:
-                found[1] = 0
-            elif spotIsAny == False: continue
-
-            if spotIsPiece and found[1] == 0:
-                found[1] = 1
-            elif spotIsPiece and columns < destination[1] and found[1] == 1:
-                found[1] = 2
-                break
-            if found[0] == 1 and spotIsPiece:
-                found[2] = (destination[1],columns)
-            # Arthritis yippe!
+        if spotIsPiece and found[1] == 0:
+            found[1] = 1
+        elif spotIsPiece and columns < destination[1] and found[1] == 1:
+            found[1] = 2
+            break
+        if found[0] == 1 and spotIsPiece:
+            found[2] = (destination[1],columns)
 
     print(found)
     return found
 
-# def check_Diagonally(destination, piece):
-#    Might need a completely new algorithm
+def check_Diagonally(destination, piece, capture = False): # I DONT CARE
+    global real_board
+    found = [None,None,None,None]
+
+    # Modes, 0 = UP+RIGHT, 1 = DOWN+LEFT, 2 = DOWN+RIGHT, 3 = UP+LEFT
+    mode = 0
+    list_to_go_over = ForwardThenBackward(destination[0],destination[1])
+    index = 1
+    for char in list_to_go_over:
+        if char == '|':
+            mode += 1
+            continue
+
+
+        if mode == 0:
+            coordinate = (char,destination[1]+index)
+            spotIsAny = check_Spot_4_Any(coordinate,piece)
+            spotIsPiece = check_Spot(coordinate,piece)
+            if spotIsPiece and found[0] == 1:
+                if found[1] == 1:
+        elif mode == 1:
+            print("work")
+        elif mode == 2:
+            print("work some more")
+        else:
+            print("work again")
+
+    print(found)
+    return found
+    
 
 #update_board()
-check_Straight((3,3),4)
-print(Index2Coord((3,3)))
+
 
 
 update_board()
