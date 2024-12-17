@@ -14,7 +14,7 @@ class piece:
 def Index2Coord(row_column):
     if row_column[0] > 7 or row_column[0] < 0: return "Bruh, Index2Coord(*row_column), 0 ≤ row ≤ 7"
     if row_column[1] > 7 or row_column[1] < 0: return "Bruh2, Index2Coord(row_*column), 0 ≤ column ≤ 7"
-    return f"{chr(row_column[1] + 97)}{row_column[0]+1}"
+    return f"{chr(row_column[0] + 97)}{row_column[1]+1}"
 
 def Coord2Index(row_column):
     if len(row_column) != 2: return "Bruh, Coord2Index(*row_column*), must be 2 characters"
@@ -22,7 +22,7 @@ def Coord2Index(row_column):
     r = int(row_column[1]) - 1 # Technically the column
     if r > 7 or r < 0: return "Bruh, Coord2Index(*row_column), first chara must be a-h only"
     if c > 7 or c < 0: return "Bruh, Coord2Index(row_*column), second chara must be 0 ≤ row ≤ 7"
-    return r,c
+    return c,r
 
 def ForwardThenBackward(x,y): # 2018 LeBron fr
     _list = [0,1,2,3,4,5,6,7]
@@ -30,30 +30,15 @@ def ForwardThenBackward(x,y): # 2018 LeBron fr
     w = list(reversed(_list[:x]))
     n = _list[y+1:]
     s = list(reversed(_list[:y]))
-    return n,s,e,w
+    return e,w,n,s
 
 # Had knee surgery and fixed it
 def DiagonalFTB(x,y):
     _list = [0,1,2,3,4,5,6,7]
-    if x+y-7 < 0:
-        ne = _list[x+1:x+y+1]
-        nw = list(reversed(_list[x-min(x,y):x]))
-        se = _list[x+1:x+1+min(7-x,7-y)]
-        sw = list(reversed(_list[:x]))
-    elif x+y-7 > 0:
-        ne = _list[x+1:]
-        nw = list(reversed(_list[x-min(x,y):x]))
-        se = _list[x+1:x+1+min(7-x,7-y)]
-        sw = list(reversed(_list[x+y-7:x]))
-    else:
-        ne = _list[x+1:]
-        sw = list(reversed(_list[:x]))
-        if min(x,y) > 0:
-            se = _list[x+1:x+1+min(7-x,7-y)]
-            nw = list(reversed(_list[x-min(x,y):x]))
-        else:
-            se = []
-            nw = []
+    ne = _list[x+1:x+min(7-x,7-y)+1]
+    nw = list(reversed(_list[x-min(x,7-y):x]))
+    se = _list[x+1:x+min(7-x,y)+1]
+    sw = list(reversed(_list[x-min(x,y):x]))
     return ne, nw, se, sw
 
 piece_dictionary = {0   : piece(    " ",    None,   None,   "Empty"         ),
@@ -90,14 +75,14 @@ real_board = [
 
 # DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER
 real_board = [
+    [10,8,9,11,12,9,8,10],
+    [7,7,7,7,0,7,7,7],
     [0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0],
-    [0,0,4,4,4,2,0,0]
+    [0,0,0,0,7,0,0,0],
+    [0,0,0,0,1,0,0,0],
+    [0,0,0,1,0,0,0,0],
+    [1,1,1,0,0,1,1,1],
+    [4,2,3,5,6,3,2,4]
     ]
 # DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER
 
@@ -136,7 +121,7 @@ def update_board():
     updatedBoard += "     a    b    c    d    e    f    g    h"
     print(updatedBoard)
 
-move = 0 
+move = 1 
 move_history = []
 
 # Parse
@@ -221,64 +206,89 @@ def return_Spot(destination):
 
 def check_Straight(destination, piece): # Calm down python
     global real_board
-    spots = ForwardThenBackward(destination)
+    spots = ForwardThenBackward(destination[0],destination[1])
+    print(spots)
     possible_pieces = []
     for horizontal in spots[0:2]:
         for x in horizontal:
             if check_Spot((x,destination[1]),piece):
                 possible_pieces += [(x,destination[1])]
                 break
-            elif check_Spot_4_Any(x,destination[1]) != True:
+            elif check_Spot_4_Any((x,destination[1])) != True:
                 continue
-            elif check_Spot_4_Any(x,destination[1]):
+            elif check_Spot_4_Any((x,destination[1])):
                 break
     for vertical in spots[2:]:
         for y in vertical:
             if check_Spot((destination[0],y),piece):
                 possible_pieces += [(destination[0],y)]
                 break
-            elif check_Spot_4_Any(destination[0],y) != True:
+            elif check_Spot_4_Any((destination[0],y)) != True:
                 continue
-            elif check_Spot_4_Any(destination[0],y):
-                break
+            else: break
     return possible_pieces
+
+
+# Welp this would've been useful a while ago:
+# TO CHECK IF ITEM IN INDEX LIST IS DECREASING (going left on the board)
+# Going through List [0,1,2,3,4,5,6,7]
+# [4->5,6,7,3,2,1,0,]
+# Check if i is less than the previous number in list
+# - Assuming we skip empty lists, only do the check if i's index is > 1
 
 
 def check_Diagonally(destination, piece): # I DONT CARE
     global real_board
-    spots = DiagonalFTB(destination)
+    spots = DiagonalFTB(destination[0],destination[1])
     possible_pieces = []
     for positive in spots[0:2]:
-        index = 0
+        if positive == []:
+            continue
+        index = 1
         for p in positive:
-            if check_Spot((p,destination[1]+index),piece):
-                possible_pieces += [(n,destination[1]+index)]
+            if check_Spot((destination[1]+index,p),piece):
+                possible_pieces += [(p,destination[1]+index)]
                 break
-            elif check_Spot_4_Any(n,destination[1]+index) != True:
+            elif check_Spot_4_Any((destination[1]+index,p)) != True:
+                index += 1
                 continue
-            elif check_Spot_4_Any(n,destination[1]+index):
-                break
-            index += 1
+            else: break
     for negative in spots[2:]:
-        index = 0
+        if negative == []:
+            continue
+        index = 1
         for n in negative:
-            if check_Spot((n,destination[1]+index),piece):
-                possible_pieces += [(n,destination[1]+index)]
+            if check_Spot((destination[1]-index,n),piece):
+                possible_pieces += [(n,destination[1]-index)]
                 break
-            elif check_Spot_4_Any(n,destination[1]+index) != True:
+            elif check_Spot_4_Any((destination[1]-index,n)) != True:
+                index += 1
                 continue
-            elif check_Spot_4_Any(n,destination[1]+index):
-                break
-            index += 1
+            else: break
     return possible_pieces
-    
-
-#update_board()
-
-
 
 update_board()
-#interpreter(input())
+print(check_Diagonally((1,3),9))
+
+# TODO: Tahiti
+# Just remembered that i cant let people move pieces that will leave
+# themselves in check. So simple way to fix this is to use the
+# horizontal and vertical checks.
+# ONLY do these checks when you move a piece that has a straight
+# and clear view of the king.
+# If you move a piece on the N, E, S, or W squares, do straight.
+# Otherwise for NE, NW, SE, and SW squares, do diagonal.
+
+# Basically,
+# 1. check king relativity when you move a piece.
+# 2. If king in sight, move piece temporarily.
+# 3. Do the check
+# 4. Hooray!
+# 5. If found opponent piece doesn't do check, return
+# 6. If piece moves moves within sight of king from found piece, return
+# 7. Otherwise, return the piece and print knee surgery
+
+
 
 # Have checks for each piece.
 # These checks are checking destination availability first. (Wether or not capturing)
