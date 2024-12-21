@@ -1,4 +1,5 @@
 import re
+
 class piece:
     def __init__(self, ICON, SIDE, VALUE, NAME):
         self.icon = ICON
@@ -9,6 +10,63 @@ class piece:
     side = bool
     value = int
     fullName = str
+
+def interpreter(inp):
+    global move, previous_move, input_error, running
+    input_error = False
+
+    # Information to pass:
+    _piece = 1 # For potential checks
+    _location = (None, None) # For specification cases
+    _capture = False # Always required when capturing
+    _destination = (None,None) # Always required
+
+    if len(inp) < 2 or len(inp) > 6:
+        input_error = True
+        return None
+    elif inp == "qq":
+        input_error = False
+        running = False
+        return None
+
+    # Regex Matching    --------------------------------------------------------------------
+    match = re.match(r'([NBRQK])?([a-h])?([1-8])?(x)?([a-h][1-8])',inp)
+
+    if match:
+        # Destination   --------------------------------------------------------------------
+        if match.group(5) == None:
+            input_error = True
+            return
+        elif match.group(5)[0] == None or match.group(5)[1] == None:
+            input_error = True
+            return
+        else:  
+            _destination = (match.group(5)[0], match.group(5)[1])
+
+        # Piece Name    --------------------------------------------------------------------
+        if match.group(1) != None:
+            _piece = piece_dictionary[match.group(1)]
+        else:   _piece = 1
+
+        # Location      --------------------------------------------------------------------
+        _location = (match.group(2), match.group(3))
+
+        # Capture       --------------------------------------------------------------------
+        if match.group(4) != None:
+            _capture = True
+        else:   _capture = False
+    else:
+        input_error = True
+        return None
+    # --------------------------------------------------------------------------------------
+
+    # If you are black
+    if move % 2 == 1:
+        _piece += 6
+
+    if input_error == False:
+        previous_move = _piece, _location, _capture, _destination
+        return previous_move
 
 # For testing.      chr(COLUMN), ROW        a1 -> h8
 def Index2Coord(row_column):
@@ -31,6 +89,87 @@ def ForwardThenBackward(x,y): # 2018 LeBron fr
     n = _list[y+1:]
     s = list(reversed(_list[:y]))
     return e,w,n,s
+
+def check_Spot(destination, piece):
+    global real_board
+    if real_board[destination[0]][destination[1]] == piece:
+        return True
+    else:
+        return False
+
+def check_Spot_4_Any(destination):
+    global real_board
+    if real_board[destination[0]][destination[1]] != 0:
+        return True
+    else:
+        return False
+    
+def check_PieceSide(piece):
+    global real_board, move, piece_dictionary
+    p = piece_dictionary[piece]
+    if move % 2 == 1:                   # For black=
+        if p.SIDE == True: return  True # Then take.
+        else:              return False # Dont take.
+    else:                               # For white=
+        if p.SIDE == False:return  True # Then take.
+        else:              return False # Dont take.
+def return_Spot(destination):
+    global real_board
+    return real_board[destination[0]][destination[1]]
+
+def check_Straight(destination, piece): # Calm down python
+    global real_board
+    spots = ForwardThenBackward(destination[0],destination[1])
+    print(spots)
+    possible_pieces = []
+    for horizontal in spots[0:2]:
+        for x in horizontal:
+            if check_Spot((x,destination[1]),piece):
+                possible_pieces += [(x,destination[1])]
+                break
+            elif check_Spot_4_Any((x,destination[1])) != True:
+                continue
+            elif check_Spot_4_Any((x,destination[1])):
+                break
+    for vertical in spots[2:]:
+        for y in vertical:
+            if check_Spot((destination[0],y),piece):
+                possible_pieces += [(destination[0],y)]
+                break
+            elif check_Spot_4_Any((destination[0],y)) != True:
+                continue
+            else: break
+    return possible_pieces
+
+def check_Diagonally(destination, piece): # I DONT CARE
+    global real_board
+    spots = DiagonalFTB(destination[0],destination[1])
+    possible_pieces = []
+    for positive in spots[0:2]:
+        if positive == []:
+            continue
+        index = 1
+        for p in positive:
+            if check_Spot((destination[1]+index,p),piece):
+                possible_pieces += [(p,destination[1]+index)]
+                break
+            elif check_Spot_4_Any((destination[1]+index,p)) != True:
+                index += 1
+                continue
+            else: break
+    for negative in spots[2:]:
+        if negative == []:
+            continue
+        index = 1
+        for n in negative:
+            if check_Spot((destination[1]-index,n),piece):
+                possible_pieces += [(n,destination[1]-index)]
+                break
+            elif check_Spot_4_Any((destination[1]-index,n)) != True:
+                index += 1
+                continue
+            else: break
+    return possible_pieces
 
 # Had knee surgery and fixed it
 def DiagonalFTB(x,y):
@@ -88,187 +227,84 @@ real_board = [
 
 real_board.reverse()
 
-def update_board():
-    global real_board
-    real_board.reverse() # cheeky. Also dont reverse maybe if multiplayering later idk
-    updatedBoard = ""
-    r = 0
-    c = 0
+def board():
+    global real_board,move
+    # cheeky. Also dont reverse maybe if multiplayering later idk
+    r = 1
+    if move % 2 == 0:
+        real_board.reverse()
+        r = 8
+    line = ""
     for row in real_board:
-        updatedBoard += str(8 - r) + "  "
+        c = 0
+        line += f"{str(r)}  "
         for column in row:
-            if r % 2 == 0:
-                if c % 2 == 0:
-                    if column != 0:
-                        updatedBoard += f"|={piece_dictionary[column].icon} ="
-                    else:
-                        updatedBoard += f"|===="
+            line += "|"
+            if (r-c) % 2 == 0:
+                if column == 0:
+                    line += f"===="
                 else:
-                    updatedBoard += f"| {piece_dictionary[column].icon}  "
-            if r % 2 == 1:
-                if c % 2 == 1:
-                    if column != 0:
-                        updatedBoard += f"|={piece_dictionary[column].icon} ="
-                    else:
-                        updatedBoard += f"|===="
+                    line += f"={piece_dictionary[column].icon} ="
+            else:
+                if column == 0:
+                    line += f"    "
                 else:
-                    updatedBoard += f"| {piece_dictionary[column].icon}  "
+                    line += f" {piece_dictionary[column].icon}  "
             c += 1
-        r += 1
+        line += "|\n\n"
+        if move % 2 == 0:
+            r -= 1
+        else:
+            r += 1
+    
+    if move % 2 == 0:
+        line += "     a    b    c    d    e    f    g    h\n\n"
+        real_board.reverse()
+    else:
+        line += "     h    g    f    e    d    c    b    a\n\n"
+        
+    return line
 
-        updatedBoard += "|\n\n"
-    real_board.reverse() # cheeky2
-    updatedBoard += "     a    b    c    d    e    f    g    h"
-    print(updatedBoard)
-
-move = 1 
+move = 0 
 move_history = []
+running = True
+input_ = ""
+previous_move = ""
+input_error = False
 
 # Parse
 # Check
 # Repeat
-def interpreter(inp):
-    global move
-    
-    # Information to pass:
-    _piece = 1 # For potential checks
-    _location = (None, None) # For specification cases
-    _capture = False # Always required when capturing
-    _destination = (None,None) # Always required
 
-    if len(inp) < 2 or len(inp) > 6:
-        print("Please make sure your input follows the algebraic notation rules.")
-        return
+# Both Straight and Diagonal methods assume destination
+# is already free or ready to take.
 
-    # Regex Matching    --------------------------------------------------------------------
-    match = re.match(r'([NBRQK])?([a-h])?([1-8])?(x)?([a-h])([1-8])',inp)
-
-    if match:
-        # Destination   --------------------------------------------------------------------
-        if match.group(5) == None or match.group(6) == None:
-            print("Please include your destination coordinate!")
-            return
-        else:   _destination = (match.group(5), match.group(6))
-
-        # Piece Name    --------------------------------------------------------------------
-        if match.group(1) != None:
-            _piece = piece_dictionary[match.group(1)]
-        else:   _piece = 1
-
-        # Location      --------------------------------------------------------------------
-        _location = (match.group(2), match.group(3))
-
-        # Capture       --------------------------------------------------------------------
-        if match.group(4) != None:
-            _capture = True
-        else:   _capture = False
-    # --------------------------------------------------------------------------------------
-
-    # If you are black
-    if move % 2 == 1:
-        _piece += 6
-
-    print(_piece, _location, _capture, _destination)
+def print_input_error():
+    print("\nPlease make sure your input follows the algebraic notation rules.\n")
 
 
-# All destinations should be input to the piece check def as tuples initially.
-
-def check_Spot(destination, piece):
-    global real_board
-    if real_board[destination[0]][destination[1]] == piece:
-        return True
+while running:
+    if move % 2 == 0:
+        print("\n\n\nTurn: White,")
     else:
-        return False
+        print("\n\n\nTurn: Black,")
+    print("Move:",move+1)
 
-def check_Spot_4_Any(destination):
-    global real_board
-    if real_board[destination[0]][destination[1]] != 0:
-        return True
+    if move > 0 and previous_move != "":
+        print("Previous:",input_, f"{previous_move}","\n\n")
     else:
-        return False
+        print("\n")
+        
+    print(board())
+    input_ = input("Enter your move:  \n")
+    interpreter(input_)
+    while input_error == True:
+        print_input_error()
+        input_ = input("Enter your move:  \n")
+        interpreter(input_)
     
-def check_PieceSide(piece):
-    global real_board, move, piece_dictionary
-    p = piece_dictionary[piece]
-    if move % 2 == 1:                   # For black=
-        if p.SIDE == True: return  True # Then take.
-        else:              return False # Dont take.
-    else:                               # For white=
-        if p.SIDE == False:return  True # Then take.
-        else:              return False # Dont take.
-
-# Makes this so much cleaner now
-def return_Spot(destination):
-    global real_board
-    return real_board[destination[0]][destination[1]]
-
-# Both Rook and Bishop methods assume destination is already free or ready to take
-
-def check_Straight(destination, piece): # Calm down python
-    global real_board
-    spots = ForwardThenBackward(destination[0],destination[1])
-    print(spots)
-    possible_pieces = []
-    for horizontal in spots[0:2]:
-        for x in horizontal:
-            if check_Spot((x,destination[1]),piece):
-                possible_pieces += [(x,destination[1])]
-                break
-            elif check_Spot_4_Any((x,destination[1])) != True:
-                continue
-            elif check_Spot_4_Any((x,destination[1])):
-                break
-    for vertical in spots[2:]:
-        for y in vertical:
-            if check_Spot((destination[0],y),piece):
-                possible_pieces += [(destination[0],y)]
-                break
-            elif check_Spot_4_Any((destination[0],y)) != True:
-                continue
-            else: break
-    return possible_pieces
-
-
-# Welp this would've been useful a while ago:
-# TO CHECK IF ITEM IN INDEX LIST IS DECREASING (going left on the board)
-# Going through List [0,1,2,3,4,5,6,7]
-# [4->5,6,7,3,2,1,0,]
-# Check if i is less than the previous number in list
-# - Assuming we skip empty lists, only do the check if i's index is > 1
-
-
-def check_Diagonally(destination, piece): # I DONT CARE
-    global real_board
-    spots = DiagonalFTB(destination[0],destination[1])
-    possible_pieces = []
-    for positive in spots[0:2]:
-        if positive == []:
-            continue
-        index = 1
-        for p in positive:
-            if check_Spot((destination[1]+index,p),piece):
-                possible_pieces += [(p,destination[1]+index)]
-                break
-            elif check_Spot_4_Any((destination[1]+index,p)) != True:
-                index += 1
-                continue
-            else: break
-    for negative in spots[2:]:
-        if negative == []:
-            continue
-        index = 1
-        for n in negative:
-            if check_Spot((destination[1]-index,n),piece):
-                possible_pieces += [(n,destination[1]-index)]
-                break
-            elif check_Spot_4_Any((destination[1]-index,n)) != True:
-                index += 1
-                continue
-            else: break
-    return possible_pieces
-
-update_board()
-print(check_Diagonally((1,3),9))
+    if previous_move != None and previous_move != "":
+        move = move + 1
 
 # TODO: Tahiti
 # Just remembered that i cant let people move pieces that will leave
@@ -288,8 +324,6 @@ print(check_Diagonally((1,3),9))
 # 6. If piece moves moves within sight of king from found piece, return
 # 7. Otherwise, return the piece and print knee surgery
 
-
-
 # Have checks for each piece.
 # These checks are checking destination availability first. (Wether or not capturing)
 # Then go backwards from destination to location. (Unless piece = Knight)
@@ -299,14 +333,12 @@ print(check_Diagonally((1,3),9))
 # If pieces found > 1, throw error.
 # Otherwise make move with the found piece. 
 
-
 # test = input()
 # match = re.match(r'([NBRQK])?([a-h])?([1-8])?(x)?([a-h])([1-8])',test)
 # print(match.groups())
 
 # Assume input of only destination is a pawn, check if there is one.
 # Erase current position of pawn, place pawn in new destination.
-
 
 #NOTES
 # White Wins:   1-0
