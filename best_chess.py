@@ -1,5 +1,9 @@
 import re
 
+# the indexing is so messed up
+# Maybe if python actually had 2D arrays,
+# this would not be making my head hurt.
+
 class piece:
     def __init__(self, ICON, SIDE, VALUE, NAME):
         self.icon = ICON
@@ -11,8 +15,8 @@ class piece:
     value = int
     fullName = str
 
-def interpreter(inp):
-    global move, previous_move, input_error, running
+def parser(inp):
+    global move, previous_move, input_error, running, piece_dictionary
     input_error = False
 
     # Information to pass:
@@ -23,11 +27,11 @@ def interpreter(inp):
 
     if len(inp) < 2 or len(inp) > 6:
         input_error = True
-        return None
+        return
     elif inp == "qq":
         input_error = False
         running = False
-        return None
+        return
 
     # Regex Matching    --------------------------------------------------------------------
     match = re.match(r'([NBRQK])?([a-h])?([1-8])?(x)?([a-h][1-8])',inp)
@@ -57,7 +61,7 @@ def interpreter(inp):
         else:   _capture = False
     else:
         input_error = True
-        return None
+        return
     # --------------------------------------------------------------------------------------
 
     # If you are black
@@ -65,8 +69,76 @@ def interpreter(inp):
         _piece += 6
 
     if input_error == False:
+        _location = Move2Index(_location)
+        _destination = Move2Index(_destination)
         previous_move = _piece, _location, _capture, _destination
-        return previous_move
+        return
+    
+def interpreter(inp):
+    global move, input_error
+    possible_pieces = []
+    if move % 2 == 1:
+        # Black
+
+        if inp[0] == 7 and inp[3][0] < 6:
+            if check_Spot(inp[3],7):
+                input_error = True
+                return
+            destinations = ((inp[3][0]+1,7-inp[3][1]),(inp[3][0]+2,7-inp[3][1]))
+            # print(destinations)
+            # print(Index2Coord((destinations[0][1],destinations[0][0])),Index2Coord((destinations[1][1],destinations[1][0])))
+            check = check_Pawn(destinations,7)
+            if check == None or check[0] == None or check[1] == None:
+                input_error = True
+                return
+            inp = inp[0],check,inp[2],inp[3]
+            if inp[1] != (None,None):
+                if inp[1][0] == 6 and inp[3][0] == 4:
+                    move_piece(inp)
+                    return
+                if inp[1][0] - inp[3][0] == 1:
+                    move_piece(inp)
+                    return
+            input_error = True
+            return
+        else:
+            input_error = True
+            return
+    else:
+        # White
+        if inp[0] == 1 and inp[3][0] > 1:
+            if check_Spot(inp[3],1):
+                input_error = True
+                return
+            destinations = ((inp[3][0]-1,7-inp[3][1]),(inp[3][0]-2,7-inp[3][1]))
+            # print(destinations)
+            # print(Index2Coord((destinations[0][1],destinations[0][0])),Index2Coord((destinations[1][1],destinations[1][0])))
+            check = check_Pawn(destinations,1)
+            if check == None or check[0] == None or check[1] == None:
+                input_error = True
+                return
+            inp = inp[0],check,inp[2],inp[3]
+            if inp[1][0] == 1 and inp[3][0] == 3:
+                move_piece(inp)
+                return
+            elif inp[3][0] - inp[1][0] == 1:
+                move_piece(inp)
+                return
+            input_error = True
+            return
+        else:
+            input_error = True
+            return
+
+def move_piece(inp):
+    global real_board, piece_dictionary
+
+    real_board[inp[1][0]][inp[1][1]] = 0
+    real_board[inp[3][0]][7-inp[3][1]] = inp[0]
+
+
+def print_input_error():
+    print("\nPlease make sure your input follows the algebraic notation rules.\n")
 
 # For testing.      chr(COLUMN), ROW        a1 -> h8
 def Index2Coord(row_column):
@@ -82,6 +154,16 @@ def Coord2Index(row_column):
     if c > 7 or c < 0: return "Bruh, Coord2Index(row_*column), second chara must be 0 ≤ row ≤ 7"
     return c,r
 
+def Move2Index(row_column):
+    global move
+    index = row_column
+    if index[0] != None:
+        index = (index[0],ord(row_column[0]) - 97)
+    if index[1] != None:
+        index = (int(row_column[1]) - 1,index[1])
+    return index
+
+
 def ForwardThenBackward(x,y): # 2018 LeBron fr
     _list = [0,1,2,3,4,5,6,7]
     e = _list[x+1:]
@@ -89,6 +171,14 @@ def ForwardThenBackward(x,y): # 2018 LeBron fr
     n = _list[y+1:]
     s = list(reversed(_list[:y]))
     return e,w,n,s
+
+def DiagonalFTB(x,y):
+    _list = [0,1,2,3,4,5,6,7]
+    ne = _list[x+1:x+min(7-x,7-y)+1]
+    nw = list(reversed(_list[x-min(x,7-y):x]))
+    se = _list[x+1:x+min(7-x,y)+1]
+    sw = list(reversed(_list[x-min(x,y):x]))
+    return ne, nw, se, sw
 
 def check_Spot(destination, piece):
     global real_board
@@ -113,6 +203,7 @@ def check_PieceSide(piece):
     else:                               # For white=
         if p.SIDE == False:return  True # Then take.
         else:              return False # Dont take.
+
 def return_Spot(destination):
     global real_board
     return real_board[destination[0]][destination[1]]
@@ -171,14 +262,60 @@ def check_Diagonally(destination, piece): # I DONT CARE
             else: break
     return possible_pieces
 
-# Had knee surgery and fixed it
-def DiagonalFTB(x,y):
-    _list = [0,1,2,3,4,5,6,7]
-    ne = _list[x+1:x+min(7-x,7-y)+1]
-    nw = list(reversed(_list[x-min(x,7-y):x]))
-    se = _list[x+1:x+min(7-x,y)+1]
-    sw = list(reversed(_list[x-min(x,y):x]))
-    return ne, nw, se, sw
+def check_Pawn(destinations, piece):
+    global real_board
+    for destination in destinations:
+        if check_Spot(destination,piece):
+            return destination
+
+def flip_board():
+    global real_board
+    real_board.reverse()
+    for x in real_board:
+        x.reverse()
+
+def board():
+    global real_board, move, piece_dictionary
+    # cheeky. Also dont reverse maybe if multiplayering later idk
+    r = 8
+    if move % 2 == 0:
+        flip_board()
+    line = ""
+    for row in real_board:
+        c = 0
+        if move % 2 == 0:
+            line += f"{str(r)}  "
+        else:
+            line += f"{str(9-r)}  "
+            
+        for column in row:
+            line += "|"
+            if (r-c) % 2 == 0:
+                if column == 0:
+                    line += f"===="
+                else:
+                    line += f"={piece_dictionary[column].icon} ="
+            else:
+                if column == 0:
+                    line += f"    "
+                else:
+                    line += f" {piece_dictionary[column].icon}  "
+            c += 1
+        line += "|\n\n"
+        r -= 1
+    
+    if move % 2 == 0:
+        line += "     a    b    c    d    e    f    g    h\n\n"
+        flip_board()
+    else:
+        line += "     h    g    f    e    d    c    b    a\n\n"
+        
+    return line
+
+# def print_previous(inp):
+#     #return f"({inp[0]},{inp[1][0],7-inp[1][1]},{inp[2],inp[3]})"
+#     #return f"{inp[1][1]}"
+#     return inp
 
 piece_dictionary = {0   : piece(    " ",    None,   None,   "Empty"         ),
                     1   : piece(    "♟",   True,   1,      "White Pawn"    ),
@@ -213,58 +350,19 @@ real_board = [
     ]
 
 # DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER
-real_board = [
-    [10,8,9,11,12,9,8,10],
-    [7,7,7,7,0,7,7,7],
-    [0,0,0,0,0,0,0,0],
-    [0,0,0,0,7,0,0,0],
-    [0,0,0,0,1,0,0,0],
-    [0,0,0,1,0,0,0,0],
-    [1,1,1,0,0,1,1,1],
-    [4,2,3,5,6,3,2,4]
-    ]
+# real_board = [
+#     [0,0,0,0,0,0,0,0],
+#     [7,0,0,0,0,0,7,0],
+#     [0,0,0,0,7,0,0,0],
+#     [0,0,0,0,0,0,0,0],
+#     [0,0,0,0,0,0,0,0],
+#     [0,0,0,0,0,0,0,0],
+#     [0,1,0,0,0,0,0,0],
+#     [0,0,0,0,0,0,0,0]
+#     ]
 # DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER
 
-real_board.reverse()
-
-def board():
-    global real_board,move
-    # cheeky. Also dont reverse maybe if multiplayering later idk
-    r = 1
-    if move % 2 == 0:
-        real_board.reverse()
-        r = 8
-    line = ""
-    for row in real_board:
-        c = 0
-        line += f"{str(r)}  "
-        for column in row:
-            line += "|"
-            if (r-c) % 2 == 0:
-                if column == 0:
-                    line += f"===="
-                else:
-                    line += f"={piece_dictionary[column].icon} ="
-            else:
-                if column == 0:
-                    line += f"    "
-                else:
-                    line += f" {piece_dictionary[column].icon}  "
-            c += 1
-        line += "|\n\n"
-        if move % 2 == 0:
-            r -= 1
-        else:
-            r += 1
-    
-    if move % 2 == 0:
-        line += "     a    b    c    d    e    f    g    h\n\n"
-        real_board.reverse()
-    else:
-        line += "     h    g    f    e    d    c    b    a\n\n"
-        
-    return line
-
+flip_board()
 move = 0 
 move_history = []
 running = True
@@ -276,35 +374,35 @@ input_error = False
 # Check
 # Repeat
 
-# Both Straight and Diagonal methods assume destination
-# is already free or ready to take.
-
-def print_input_error():
-    print("\nPlease make sure your input follows the algebraic notation rules.\n")
-
-
 while running:
+    if input_error:
+        print_input_error()
     if move % 2 == 0:
         print("\n\n\nTurn: White,")
     else:
         print("\n\n\nTurn: Black,")
-    print("Move:",move+1)
+    print("Move:",move+1,"\n")
 
-    if move > 0 and previous_move != "":
-        print("Previous:",input_, f"{previous_move}","\n\n")
-    else:
-        print("\n")
+    # if move > 0 and previous_move != "":
+    #     print("Previous:",input_, f"{print_previous(previous_move)}","\n\n")
+    # else:
+    #     print("\n")       For some reason I can't get previous_move to actually update
         
     print(board())
     input_ = input("Enter your move:  \n")
-    interpreter(input_)
+    parser(input_)
     while input_error == True:
         print_input_error()
         input_ = input("Enter your move:  \n")
-        interpreter(input_)
+        parser(input_)
     
-    if previous_move != None and previous_move != "":
+    interpreter(previous_move)
+
+    if previous_move != None and previous_move != "" and input_error == False:
         move = move + 1
+
+# Both Straight and Diagonal methods assume destination
+# is already free or ready to take.
 
 # TODO: Tahiti
 # Just remembered that i cant let people move pieces that will leave
