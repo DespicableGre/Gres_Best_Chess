@@ -45,7 +45,7 @@ def parser(inp):
             input_error = True
             return
         else:  
-            _destination = (match.group(5)[0], match.group(5)[1])
+            _destination = (match.group(5)[1], match.group(5)[0])
 
         # Piece Name    --------------------------------------------------------------------
         if match.group(1) != None:
@@ -73,7 +73,7 @@ def parser(inp):
         _destination = Move2Index(_destination)
         previous_move = _piece, _location, _capture, _destination
         return
-    
+
 def interpreter(inp):
     global move, input_error
     possible_pieces = []
@@ -126,7 +126,7 @@ def interpreter(inp):
             if check_Spot(inp[3],1):
                 input_error = True
                 return
-            destinations = ((inp[3][0]-1,7-inp[3][1]),(inp[3][0]-2,7-inp[3][1]))
+            destinations = ((inp[3][0]-1,inp[3][1]),(inp[3][0]-2,inp[3][1]))
             # print(destinations)
             # print(Index2Coord((destinations[0][1],destinations[0][0])),Index2Coord((destinations[1][1],destinations[1][0])))
             check = check_Pawn(destinations,1)
@@ -156,6 +156,7 @@ def interpreter(inp):
                 input_error = True
                 return
             elif len(possible_pieces) == 1:
+                print(possible_pieces[0])
                 inp = inp[0],possible_pieces[0],inp[2],inp[3]
                 move_piece(inp)
             else:
@@ -171,34 +172,43 @@ def move_piece(inp):
     global real_board, piece_dictionary
 
     real_board[inp[1][0]][inp[1][1]] = 0
-    real_board[inp[3][0]][7-inp[3][1]] = inp[0]
+    real_board[inp[3][0]][inp[3][1]] = inp[0]
 
 
 def print_input_error():
     print("\nPlease make sure your input follows the algebraic notation rules.\n")
 
-# For testing.      chr(COLUMN), ROW        a1 -> h8
+# Converts a tuple [int,int], to readable board coordinate.
 def Index2Coord(row_column):
     if row_column[0] > 7 or row_column[0] < 0: return "Bruh, Index2Coord(*row_column), 0 ≤ row ≤ 7"
     if row_column[1] > 7 or row_column[1] < 0: return "Bruh2, Index2Coord(row_*column), 0 ≤ column ≤ 7"
     return f"{chr(row_column[0] + 97)}{row_column[1]+1}"
 
+# Other way around.
 def Coord2Index(row_column):
     if len(row_column) != 2: return "Bruh, Coord2Index(*row_column*), must be 2 characters"
-    c = ord(row_column[0]) - 97 # Technically the row
-    r = int(row_column[1]) - 1 # Technically the column
-    if r > 7 or r < 0: return "Bruh, Coord2Index(*row_column), first chara must be a-h only"
-    if c > 7 or c < 0: return "Bruh, Coord2Index(row_*column), second chara must be 0 ≤ row ≤ 7"
-    return c,r
+    r = ord(row_column[0]) - 97 # Row
+    c = int(row_column[1]) - 1 # Column
+    if r > 7 or r < 0: return "Bruh, Coord2Index(*row_column), first char must be a-h only"
+    if c > 7 or c < 0: return "Bruh, Coord2Index(row_*column), second char must be 0 ≤ row ≤ 7"
+    return r,c
 
+# Converts the what I call "algebraic index" or "move" to index.
+# Specifically for the parser.
 def Move2Index(row_column):
-    global move
-    index = row_column
-    if index[0] != None:
-        index = (index[0],ord(row_column[0]) - 97)
-    if index[1] != None:
-        index = (int(row_column[1]) - 1,index[1])
-    return index
+    if row_column == None:
+        return None,None
+    elif row_column[0] == None:
+        return None,None
+    elif row_column[1] == None:
+        return None,None
+    
+    r = int(row_column[0]) - 1          # Row
+    c = int(ord(row_column[1]) - 97)    # Column
+    print(r,c)
+    if r > 7 or r < 0: return None,None
+    if c > 7 or c < 0: return None,None
+    return r,c
 
 
 def ForwardThenBackward(x,y): # 2018 LeBron fr
@@ -209,7 +219,7 @@ def ForwardThenBackward(x,y): # 2018 LeBron fr
     s = list(reversed(_list[:y]))
     return e,w,n,s
 
-def DiagonalFTB(x,y):
+def DiagonalFTB(y,x):
     _list = [0,1,2,3,4,5,6,7]
     ne = _list[x+1:x+min(7-x,7-y)+1]
     nw = list(reversed(_list[x-min(x,7-y):x]))
@@ -219,6 +229,7 @@ def DiagonalFTB(x,y):
 
 def check_Spot(destination, piece):
     global real_board
+    # print(destination)
     if real_board[destination[0]][destination[1]] == piece:
         return True
     else:
@@ -251,19 +262,18 @@ def check_Straight(destination, piece): # Calm down python
     possible_pieces = []
     for horizontal in spots[0:2]:
         for x in horizontal:
-            if check_Spot((x,destination[1]),piece):
-                possible_pieces += [(x,destination[1])]
+            if check_Spot((destination[0],x),piece):
+                possible_pieces += [(destination[0],x)]
                 break
-            elif check_Spot_4_Any((x,destination[1])) != True:
+            elif check_Spot_4_Any((destination[0],x)) != True:
                 continue
-            elif check_Spot_4_Any((x,destination[1])):
-                break
+            else: break
     for vertical in spots[2:]:
         for y in vertical:
-            if check_Spot((destination[0],y),piece):
-                possible_pieces += [(destination[0],y)]
+            if check_Spot((y,destination[1]),piece):
+                possible_pieces += [(y,destination[1])]
                 break
-            elif check_Spot_4_Any((destination[0],y)) != True:
+            elif check_Spot_4_Any((y,destination[1])) != True:
                 continue
             else: break
     return possible_pieces
@@ -271,31 +281,36 @@ def check_Straight(destination, piece): # Calm down python
 def check_Diagonally(destination, piece): # I DONT CARE
     global real_board
     spots = DiagonalFTB(destination[0],destination[1])
+    print(spots)
+    print(destination)
     possible_pieces = []
     for positive in spots[0:2]:
-        if positive == []:
+        if len(positive) == 0:
             continue
         index = 1
         for p in positive:
-            if check_Spot((destination[1]+index,p),piece):
-                possible_pieces += [(destination[1]+index,p)]
+            check = destination[0]+index,p
+            if check_Spot(check,piece):
+                possible_pieces += [check]
                 break
-            elif check_Spot_4_Any((destination[1]+index,p)) != True:
-                index += 1
-                continue
-            else: break
+            elif check_Spot_4_Any(check) == True:
+                break
+            print(check,index)
+            index += 1
+        # Next loops should like this loop
+        # loop first two lists in 'spots' individually
     for negative in spots[2:]:
-        if negative == []:
+        if len(negative) == 0:
             continue
         index = 1
         for n in negative:
-            if check_Spot((destination[1]-index,n),piece):
-                possible_pieces += [(destination[1]-index,n)]
+            check = destination[0]-index,n
+            if check_Spot(check,piece):
+                possible_pieces += [check]
                 break
-            elif check_Spot_4_Any((destination[1]-index,n)) != True:
-                index += 1
-                continue
-            else: break
+            elif check_Spot_4_Any(check) == True:
+                break
+        index += 1
     return possible_pieces
 
 def check_Pawn(destinations, piece):
@@ -386,23 +401,23 @@ real_board = [
     ]
 
 # DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER
-real_board = [
-    [10,8,9,11,12,9,8,10],
-    [0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0],
-    [4,2,3,5,6,3,2,4]
-    ]
+# real_board = [
+#     [10,8,9,11,12,9,8,10],
+#     [0,0,0,0,0,0,0,0],
+#     [0,0,0,0,0,0,0,0],
+#     [0,0,0,0,0,0,0,0],
+#     [0,0,0,0,0,0,0,0],
+#     [0,0,0,0,0,0,0,0],
+#     [0,0,0,0,0,0,0,0],
+#     [4,2,3,5,6,3,2,4]
+#     ]
 
-temp = check_Diagonally((1,3),3)
-print(Index2Coord((3,1)))
-if len(temp) == 0:
-    print("None")
-else:
-    print(Index2Coord((7-temp[0][0],7-temp[0][1])))
+# temp = check_Diagonally((1,3),3)
+# print(Index2Coord((3,1)))
+# if len(temp) == 0:
+#     print("None")
+# else:
+#     print(Index2Coord((temp[0][0],temp[0][1])))
 
 # DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER
 
