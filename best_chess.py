@@ -78,9 +78,10 @@ def interpreter(inp):
     global move, input_error
     possible_pieces = []
     if move % 2 == 1:
+
         # Black
 
-        if inp[0] == 7 and inp[3][0] < 6:
+        if inp[0] == 7 and inp[3][0] < 6: # Black Pawn
             if check_Spot(inp[3],7):
                 input_error = True
                 return
@@ -100,13 +101,28 @@ def interpreter(inp):
                     move_piece(inp)
                     return
             input_error = True
+
+        elif inp[0] == 9: # Black Bishop
+            if check_Spot(inp[3],9):
+                input_error = True
+                return
+            possible_pieces = check_Diagonally((inp[3][0],7-inp[3][1]),9)
+            print(possible_pieces)
+            if len(possible_pieces) == 0:
+                input_error = True
+                return
+            move_piece(possible_pieces[0])
             return
+
         else:
             input_error = True
             return
+
     else:
+
         # White
-        if inp[0] == 1 and inp[3][0] > 1:
+
+        if inp[0] == 1 and inp[3][0] > 1: # White Pawn
             if check_Spot(inp[3],1):
                 input_error = True
                 return
@@ -126,6 +142,27 @@ def interpreter(inp):
                 return
             input_error = True
             return
+
+        elif inp[0] == 3: # White Bishop
+
+            if check_Spot(inp[3],3):
+                input_error = True
+                return
+
+            # Check if there already is location from inp
+
+            possible_pieces = check_Diagonally(inp[3],3)
+            if len(possible_pieces) == 0:
+                input_error = True
+                return
+            elif len(possible_pieces) == 1:
+                inp = inp[0],possible_pieces[0],inp[2],inp[3]
+                move_piece(inp)
+            else:
+                input_error = True
+                return
+            return
+
         else:
             input_error = True
             return
@@ -211,7 +248,6 @@ def return_Spot(destination):
 def check_Straight(destination, piece): # Calm down python
     global real_board
     spots = ForwardThenBackward(destination[0],destination[1])
-    print(spots)
     possible_pieces = []
     for horizontal in spots[0:2]:
         for x in horizontal:
@@ -242,7 +278,7 @@ def check_Diagonally(destination, piece): # I DONT CARE
         index = 1
         for p in positive:
             if check_Spot((destination[1]+index,p),piece):
-                possible_pieces += [(p,destination[1]+index)]
+                possible_pieces += [(destination[1]+index,p)]
                 break
             elif check_Spot_4_Any((destination[1]+index,p)) != True:
                 index += 1
@@ -254,7 +290,7 @@ def check_Diagonally(destination, piece): # I DONT CARE
         index = 1
         for n in negative:
             if check_Spot((destination[1]-index,n),piece):
-                possible_pieces += [(n,destination[1]-index)]
+                possible_pieces += [(destination[1]-index,n)]
                 break
             elif check_Spot_4_Any((destination[1]-index,n)) != True:
                 index += 1
@@ -350,16 +386,24 @@ real_board = [
     ]
 
 # DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER
-# real_board = [
-#     [0,0,0,0,0,0,0,0],
-#     [7,0,0,0,0,0,7,0],
-#     [0,0,0,0,7,0,0,0],
-#     [0,0,0,0,0,0,0,0],
-#     [0,0,0,0,0,0,0,0],
-#     [0,0,0,0,0,0,0,0],
-#     [0,1,0,0,0,0,0,0],
-#     [0,0,0,0,0,0,0,0]
-#     ]
+real_board = [
+    [10,8,9,11,12,9,8,10],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [4,2,3,5,6,3,2,4]
+    ]
+
+temp = check_Diagonally((1,3),3)
+print(Index2Coord((3,1)))
+if len(temp) == 0:
+    print("None")
+else:
+    print(Index2Coord((7-temp[0][0],7-temp[0][1])))
+
 # DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER
 
 flip_board()
