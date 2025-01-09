@@ -85,7 +85,7 @@ def interpreter(inp):
             if check_Spot(inp[3],7):
                 input_error = True
                 return
-            destinations = ((inp[3][0]+1,7-inp[3][1]),(inp[3][0]+2,7-inp[3][1]))
+            destinations = ((inp[3][0]+1,inp[3][1]),(inp[3][0]+2,inp[3][1]))
             # print(destinations)
             # print(Index2Coord((destinations[0][1],destinations[0][0])),Index2Coord((destinations[1][1],destinations[1][0])))
             check = check_Pawn(destinations,7)
@@ -106,7 +106,7 @@ def interpreter(inp):
             if check_Spot(inp[3],9):
                 input_error = True
                 return
-            possible_pieces = check_Diagonally((inp[3][0],7-inp[3][1]),9)
+            possible_pieces = check_Diagonally((inp[3][0],inp[3][1]),9)
             print(possible_pieces)
             if len(possible_pieces) == 0:
                 input_error = True
@@ -168,6 +168,8 @@ def interpreter(inp):
             input_error = True
             return
 
+
+
 def move_piece(inp):
     global real_board, piece_dictionary
 
@@ -205,7 +207,7 @@ def Move2Index(row_column):
     
     r = int(row_column[0]) - 1          # Row
     c = int(ord(row_column[1]) - 97)    # Column
-    print(r,c)
+    c = 7-c
     if r > 7 or r < 0: return None,None
     if c > 7 or c < 0: return None,None
     return r,c
@@ -280,7 +282,7 @@ def check_Straight(destination, piece): # Calm down python
 
 def check_Diagonally(destination, piece): # I DONT CARE
     global real_board
-    spots = DiagonalFTB(destination[0],destination[1])
+    spots = DiagonalFTB(destination[0],7-destination[1])
     print(spots)
     print(destination)
     possible_pieces = []
@@ -295,10 +297,11 @@ def check_Diagonally(destination, piece): # I DONT CARE
                 break
             elif check_Spot_4_Any(check) == True:
                 break
-            print(check,index)
+            #print(check,index)
             index += 1
         # Next loops should like this loop
         # loop first two lists in 'spots' individually
+
     for negative in spots[2:]:
         if len(negative) == 0:
             continue
@@ -310,7 +313,8 @@ def check_Diagonally(destination, piece): # I DONT CARE
                 break
             elif check_Spot_4_Any(check) == True:
                 break
-        index += 1
+            print(check,index)
+            index += 1
     return possible_pieces
 
 def check_Pawn(destinations, piece):
@@ -401,16 +405,16 @@ real_board = [
     ]
 
 # DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER
-# real_board = [
-#     [10,8,9,11,12,9,8,10],
-#     [0,0,0,0,0,0,0,0],
-#     [0,0,0,0,0,0,0,0],
-#     [0,0,0,0,0,0,0,0],
-#     [0,0,0,0,0,0,0,0],
-#     [0,0,0,0,0,0,0,0],
-#     [0,0,0,0,0,0,0,0],
-#     [4,2,3,5,6,3,2,4]
-#     ]
+real_board = [
+    [10,8,9,11,12,9,8,10],
+    [7,7,7,0,0,7,7,7],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,7,7,0,0,0],
+    [0,0,0,0,1,0,0,0],
+    [0,0,0,1,0,0,0,0],
+    [1,1,1,0,0,1,1,1],
+    [4,2,3,5,6,3,2,4]
+    ]
 
 # temp = check_Diagonally((1,3),3)
 # print(Index2Coord((3,1)))
