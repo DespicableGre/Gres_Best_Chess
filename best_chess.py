@@ -1,8 +1,10 @@
 import re
 
-# the indexing is so messed up
-# Maybe if python actually had 2D arrays,
-# this would not be making my head hurt.
+# Pawns can move forward by 1 or 2 spaces (depending on where they started)
+# Bishops can move and eat pieces cause i forgot to fix that.
+#
+# Queen and Rook should be the easiest to add.
+# Maybe i'll remake in Unity or something
 
 class piece:
     def __init__(self, ICON, SIDE, VALUE, NAME):
@@ -16,19 +18,28 @@ class piece:
     fullName = str
 
 def parser(inp):
-    global move, previous_move, input_error, running, piece_dictionary
+    global move, previous_move, input_error, running, piece_dictionary, skip_input
+
     input_error = False
 
     # Information to pass:
-    _piece = 1 # For potential checks
-    _location = (None, None) # For specification cases
-    _capture = False # Always required when capturing
-    _destination = (None,None) # Always required
+    _piece = 1                  # For potential checks
+    _location = (None, None)    # For specification cases
+    _capture = False            # Always required when capturing
+    _destination = (None,None)  # Always required
 
+    # if inp.lower() == "":
+    #     skip_input = True
+    #     whatever boolean =
+    #     return
+    # elif inp.lower() == "":
+    #     skip_input = True
+    #     whatever boolean =
+    #     return
     if len(inp) < 2 or len(inp) > 6:
         input_error = True
         return
-    elif inp == "qq":
+    elif inp.lower() == "qq":
         input_error = False
         running = False
         return
@@ -81,13 +92,12 @@ def interpreter(inp):
 
         # Black
 
-        if inp[0] == 7 and inp[3][0] < 6: # Black Pawn
-            if check_Spot(inp[3],7):
+        # Black Pawn
+        if inp[0] == 7 and inp[3][0] < 6:
+            if check_Spot(inp[3],7) or check_Spot_4_Any(inp[3]):
                 input_error = True
                 return
             destinations = ((inp[3][0]+1,inp[3][1]),(inp[3][0]+2,inp[3][1]))
-            # print(destinations)
-            # print(Index2Coord((destinations[0][1],destinations[0][0])),Index2Coord((destinations[1][1],destinations[1][0])))
             check = check_Pawn(destinations,7)
             if check == None or check[0] == None or check[1] == None:
                 input_error = True
@@ -102,16 +112,25 @@ def interpreter(inp):
                     return
             input_error = True
 
-        elif inp[0] == 9: # Black Bishop
-            if check_Spot(inp[3],9):
+        # Black Bishop
+        elif inp[0] == 9:
+
+            if check_Spot(inp[3],9) or check_Spot_4_Any(inp[3]):
                 input_error = True
                 return
-            possible_pieces = check_Diagonally((inp[3][0],inp[3][1]),9)
-            print(possible_pieces)
+
+            # Check if there already is a location from inp
+
+            possible_pieces = check_Diagonally(inp[3],9)
             if len(possible_pieces) == 0:
                 input_error = True
                 return
-            move_piece(possible_pieces[0])
+            elif len(possible_pieces) == 1:
+                inp = inp[0],possible_pieces[0],inp[2],inp[3]
+                move_piece(inp)
+            else:
+                input_error = True
+                return
             return
 
         else:
@@ -122,13 +141,12 @@ def interpreter(inp):
 
         # White
 
-        if inp[0] == 1 and inp[3][0] > 1: # White Pawn
-            if check_Spot(inp[3],1):
+        # White Pawn
+        if inp[0] == 1 and inp[3][0] > 1:
+            if check_Spot(inp[3],1) or check_Spot_4_Any(inp[3]):
                 input_error = True
                 return
             destinations = ((inp[3][0]-1,inp[3][1]),(inp[3][0]-2,inp[3][1]))
-            # print(destinations)
-            # print(Index2Coord((destinations[0][1],destinations[0][0])),Index2Coord((destinations[1][1],destinations[1][0])))
             check = check_Pawn(destinations,1)
             if check == None or check[0] == None or check[1] == None:
                 input_error = True
@@ -143,20 +161,20 @@ def interpreter(inp):
             input_error = True
             return
 
-        elif inp[0] == 3: # White Bishop
+        # White Bishop
+        elif inp[0] == 3:
 
-            if check_Spot(inp[3],3):
+            if check_Spot(inp[3],3) or check_Spot_4_Any(inp[3]):
                 input_error = True
                 return
 
-            # Check if there already is location from inp
+            # Check if there already is a location from inp
 
             possible_pieces = check_Diagonally(inp[3],3)
             if len(possible_pieces) == 0:
                 input_error = True
                 return
             elif len(possible_pieces) == 1:
-                print(possible_pieces[0])
                 inp = inp[0],possible_pieces[0],inp[2],inp[3]
                 move_piece(inp)
             else:
@@ -168,13 +186,12 @@ def interpreter(inp):
             input_error = True
             return
 
-
-
 def move_piece(inp):
     global real_board, piece_dictionary
 
     real_board[inp[1][0]][inp[1][1]] = 0
     real_board[inp[3][0]][inp[3][1]] = inp[0]
+    # Eats anything that is on these two indexes
 
 
 def print_input_error():
@@ -184,13 +201,13 @@ def print_input_error():
 def Index2Coord(row_column):
     if row_column[0] > 7 or row_column[0] < 0: return "Bruh, Index2Coord(*row_column), 0 ≤ row ≤ 7"
     if row_column[1] > 7 or row_column[1] < 0: return "Bruh2, Index2Coord(row_*column), 0 ≤ column ≤ 7"
-    return f"{chr(row_column[0] + 97)}{row_column[1]+1}"
+    return f"{chr(row_column[1] + 97)}{row_column[0]+1}"
 
 # Other way around.
 def Coord2Index(row_column):
     if len(row_column) != 2: return "Bruh, Coord2Index(*row_column*), must be 2 characters"
     r = ord(row_column[0]) - 97 # Row
-    c = int(row_column[1]) - 1 # Column
+    c = int(row_column[1]) - 1  # Column
     if r > 7 or r < 0: return "Bruh, Coord2Index(*row_column), first char must be a-h only"
     if c > 7 or c < 0: return "Bruh, Coord2Index(row_*column), second char must be 0 ≤ row ≤ 7"
     return r,c
@@ -205,15 +222,14 @@ def Move2Index(row_column):
     elif row_column[1] == None:
         return None,None
     
-    r = int(row_column[0]) - 1          # Row
-    c = int(ord(row_column[1]) - 97)    # Column
-    c = 7-c
+    r = int(row_column[0]) - 1              # Row
+    c = 7-(int(ord(row_column[1]) - 97))    # Column
     if r > 7 or r < 0: return None,None
     if c > 7 or c < 0: return None,None
     return r,c
 
 
-def ForwardThenBackward(x,y): # 2018 LeBron fr
+def ForwardThenBackward(y,x):
     _list = [0,1,2,3,4,5,6,7]
     e = _list[x+1:]
     w = list(reversed(_list[:x]))
@@ -258,7 +274,7 @@ def return_Spot(destination):
     global real_board
     return real_board[destination[0]][destination[1]]
 
-def check_Straight(destination, piece): # Calm down python
+def check_Straight(destination, piece): # This is correct now
     global real_board
     spots = ForwardThenBackward(destination[0],destination[1])
     possible_pieces = []
@@ -280,11 +296,9 @@ def check_Straight(destination, piece): # Calm down python
             else: break
     return possible_pieces
 
-def check_Diagonally(destination, piece): # I DONT CARE
+def check_Diagonally(destination, piece): # Good stuff
     global real_board
-    spots = DiagonalFTB(destination[0],7-destination[1])
-    print(spots)
-    print(destination)
+    spots = DiagonalFTB(destination[0],destination[1])
     possible_pieces = []
     for positive in spots[0:2]:
         if len(positive) == 0:
@@ -297,10 +311,7 @@ def check_Diagonally(destination, piece): # I DONT CARE
                 break
             elif check_Spot_4_Any(check) == True:
                 break
-            #print(check,index)
             index += 1
-        # Next loops should like this loop
-        # loop first two lists in 'spots' individually
 
     for negative in spots[2:]:
         if len(negative) == 0:
@@ -313,12 +324,12 @@ def check_Diagonally(destination, piece): # I DONT CARE
                 break
             elif check_Spot_4_Any(check) == True:
                 break
-            print(check,index)
             index += 1
     return possible_pieces
 
 def check_Pawn(destinations, piece):
     global real_board
+    # pls add capture and an passant later
     for destination in destinations:
         if check_Spot(destination,piece):
             return destination
@@ -329,9 +340,9 @@ def flip_board():
     for x in real_board:
         x.reverse()
 
+
 def board():
     global real_board, move, piece_dictionary
-    # cheeky. Also dont reverse maybe if multiplayering later idk
     r = 8
     if move % 2 == 0:
         flip_board()
@@ -367,10 +378,6 @@ def board():
         
     return line
 
-# def print_previous(inp):
-#     #return f"({inp[0]},{inp[1][0],7-inp[1][1]},{inp[2],inp[3]})"
-#     #return f"{inp[1][1]}"
-#     return inp
 
 piece_dictionary = {0   : piece(    " ",    None,   None,   "Empty"         ),
                     1   : piece(    "♟",   True,   1,      "White Pawn"    ),
@@ -416,16 +423,10 @@ real_board = [
     [4,2,3,5,6,3,2,4]
     ]
 
-# temp = check_Diagonally((1,3),3)
-# print(Index2Coord((3,1)))
-# if len(temp) == 0:
-#     print("None")
-# else:
-#     print(Index2Coord((temp[0][0],temp[0][1])))
-
 # DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER
 
 flip_board()
+skip_input = False # For later
 move = 0 
 move_history = []
 running = True
@@ -433,11 +434,13 @@ input_ = ""
 previous_move = ""
 input_error = False
 
+# Basically:
 # Parse
 # Check
 # Repeat
 
 while running:
+    skip_input = False
     if input_error:
         print_input_error()
     if move % 2 == 0:
@@ -450,24 +453,36 @@ while running:
     #     print("Previous:",input_, f"{print_previous(previous_move)}","\n\n")
     # else:
     #     print("\n")       For some reason I can't get previous_move to actually update
+
+    # Maybe a class would fix idk
         
     print(board())
     input_ = input("Enter your move:  \n")
     parser(input_)
-    while input_error == True:
+    while input_error == True and skip_input == False:
         print_input_error()
         input_ = input("Enter your move:  \n")
         parser(input_)
     
-    interpreter(previous_move)
+    if skip_input == False:
+        interpreter(previous_move)
 
-    if previous_move != None and previous_move != "" and input_error == False:
+    if previous_move != None and previous_move != "" and input_error == False and skip_input == False:
         move = move + 1
 
-# Both Straight and Diagonal methods assume destination
+# Notes (Important):
+# 1. Both Straight and Diagonal methods assume destination
 # is already free or ready to take.
 
+# 2. Every coordinate input is always in format (y,x).
+
 # TODO: Tahiti
+# (NEWEST)
+# 1. Allow captures
+# 2. Skip piece finder algorithims when user enters a piece origin location.
+# 3. Add rooks, shouldn't be too hard
+
+# (Old)
 # Just remembered that i cant let people move pieces that will leave
 # themselves in check. So simple way to fix this is to use the
 # horizontal and vertical checks.
@@ -493,10 +508,6 @@ while running:
 
 # If pieces found > 1, throw error.
 # Otherwise make move with the found piece. 
-
-# test = input()
-# match = re.match(r'([NBRQK])?([a-h])?([1-8])?(x)?([a-h])([1-8])',test)
-# print(match.groups())
 
 # Assume input of only destination is a pawn, check if there is one.
 # Erase current position of pawn, place pawn in new destination.
