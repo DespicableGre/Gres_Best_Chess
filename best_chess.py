@@ -64,7 +64,7 @@ def parser(inp):
         else:   _piece = 1
 
         # Location      --------------------------------------------------------------------
-        _location = (match.group(2), match.group(3))
+        _location = (match.group(3), match.group(2))
 
         # Capture       --------------------------------------------------------------------
         if match.group(4) != None:
@@ -80,13 +80,14 @@ def parser(inp):
         _piece += 6
 
     if input_error == False:
-        _location = Move2Index(_location)
+        _location = Move2Index(_location, True)
         _destination = Move2Index(_destination)
         previous_move = _piece, _location, _capture, _destination
         return
 
 def interpreter(inp):
     global move, input_error
+    location = False, None, None
     possible_pieces = []
     if move % 2 == 1:
 
@@ -114,24 +115,19 @@ def interpreter(inp):
 
         # Black Bishop
         elif inp[0] == 9:
-
             if check_Spot(inp[3],9) or check_Spot_4_Any(inp[3]):
                 input_error = True
                 return
+            location = location_check(inp)
+            MoveInLine(inp,check_Diagonally(inp[3],9),location)
 
-            # Check if there already is a location from inp
-
-            possible_pieces = check_Diagonally(inp[3],9)
-            if len(possible_pieces) == 0:
+        # Black Rook
+        elif inp[0] == 10:
+            if check_Spot(inp[3],10) or check_Spot_4_Any(inp[3]):
                 input_error = True
                 return
-            elif len(possible_pieces) == 1:
-                inp = inp[0],possible_pieces[0],inp[2],inp[3]
-                move_piece(inp)
-            else:
-                input_error = True
-                return
-            return
+            location = location_check(inp)
+            MoveInLine(inp,check_Straight(inp[3],10),location)
 
         else:
             input_error = True
@@ -167,29 +163,71 @@ def interpreter(inp):
             if check_Spot(inp[3],3) or check_Spot_4_Any(inp[3]):
                 input_error = True
                 return
+            location = location_check(inp)
+            MoveInLine(inp,check_Diagonally(inp[3],3),location)
+        
+        # White Rook
+        elif inp[0] == 4:
 
-            # Check if there already is a location from inp
-
-            possible_pieces = check_Diagonally(inp[3],3)
-            if len(possible_pieces) == 0:
+            if check_Spot(inp[3],4) or check_Spot_4_Any(inp[3]):
                 input_error = True
                 return
-            elif len(possible_pieces) == 1:
-                inp = inp[0],possible_pieces[0],inp[2],inp[3]
-                move_piece(inp)
-            else:
-                input_error = True
-                return
-            return
+            location = location_check(inp)
+            MoveInLine(inp,check_Straight(inp[3],4),location)
 
         else:
             input_error = True
             return
 
-def move_piece(inp):
+def location_check(inp):
+    if inp[1] == (None,None):
+        return False, None, None
+    row = False
+    column = False
+    if inp[1][0] != None:
+        row = True
+    if inp[1][1] != None:
+        column = True
+    return True, row, column
+    
+def coord_scan(coordinates, check, row = False, column = False):
+    found = []
+    for coord in coordinates:
+        if row and column:
+            if coord[0] == check[0] and coord[1] == check[1]:
+                found += coord
+                break
+        elif row and column == False:
+            if coord[0] == check[0]:
+                found += (coord)
+        elif column and row == False:
+            if coord[1] == check[1]:
+                found += (coord)
+    return found
+
+def MoveInLine(inp, possible_pieces, location = (False,None,None)):
+    global input_error
+    if location[0] == False:
+        if len(possible_pieces) == 1:
+            inp = inp[0],possible_pieces[0],inp[2],inp[3]
+            move_piece(inp)
+        else:
+            input_error = True
+    else:
+        found = coord_scan(possible_pieces, inp[1], location[1], location[2])
+        if len(found) == 2:
+            move_piece(inp,found)
+        else:
+            input_error = True
+
+def move_piece(inp,location = None):
     global real_board, piece_dictionary
 
-    real_board[inp[1][0]][inp[1][1]] = 0
+    if location == None:
+        real_board[inp[1][0]][inp[1][1]] = 0
+    else:
+        real_board[location[0]][location[1]] = 0
+
     real_board[inp[3][0]][inp[3][1]] = inp[0]
     # Eats anything that is on these two indexes
 
@@ -214,18 +252,25 @@ def Coord2Index(row_column):
 
 # Converts the what I call "algebraic index" or "move" to index.
 # Specifically for the parser.
-def Move2Index(row_column):
-    if row_column == None:
-        return None,None
-    elif row_column[0] == None:
-        return None,None
-    elif row_column[1] == None:
+def Move2Index(row_column,loosen=False):
+    global input_error
+    if loosen == False and (row_column or row_column[0] or row_column[1]) == None:
         return None,None
     
-    r = int(row_column[0]) - 1              # Row
-    c = 7-(int(ord(row_column[1]) - 97))    # Column
-    if r > 7 or r < 0: return None,None
-    if c > 7 or c < 0: return None,None
+    r = None
+    c = None
+
+    if row_column[0] != None:
+        r = int(row_column[0]) - 1              # Row
+        if r > 7 or r < 0:
+            input_error = True
+            return None,None
+    if row_column[1] != None:
+        c = 7-(int(ord(row_column[1]) - 97))    # Column
+        if c > 7 or c < 0:
+            input_error = True
+            return None,None
+
     return r,c
 
 
@@ -412,16 +457,16 @@ real_board = [
     ]
 
 # DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER
-real_board = [
-    [10,8,9,11,12,9,8,10],
-    [7,7,7,0,0,7,7,7],
-    [0,0,0,0,0,0,0,0],
-    [0,0,0,7,7,0,0,0],
-    [0,0,0,0,1,0,0,0],
-    [0,0,0,1,0,0,0,0],
-    [1,1,1,0,0,1,1,1],
-    [4,2,3,5,6,3,2,4]
-    ]
+# real_board = [
+#     [0,0,0,0,0,0,0,0],
+#     [0,0,0,0,10,4,0,0],
+#     [0,0,4,0,0,0,0,0],
+#     [0,0,0,0,0,0,4,0],
+#     [0,4,0,10,0,0,0,0],
+#     [0,0,0,0,0,10,0,0],
+#     [0,4,0,0,0,0,0,0],
+#     [0,0,0,0,0,0,0,0]
+#     ]
 
 # DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER DELETE LATER
 
@@ -448,13 +493,6 @@ while running:
     else:
         print("\n\n\nTurn: Black,")
     print("Move:",move+1,"\n")
-
-    # if move > 0 and previous_move != "":
-    #     print("Previous:",input_, f"{print_previous(previous_move)}","\n\n")
-    # else:
-    #     print("\n")       For some reason I can't get previous_move to actually update
-
-    # Maybe a class would fix idk
         
     print(board())
     input_ = input("Enter your move:  \n")
@@ -464,7 +502,7 @@ while running:
         input_ = input("Enter your move:  \n")
         parser(input_)
     
-    if skip_input == False:
+    if skip_input == False and running:
         interpreter(previous_move)
 
     if previous_move != None and previous_move != "" and input_error == False and skip_input == False:
