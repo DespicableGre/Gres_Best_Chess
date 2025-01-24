@@ -7,15 +7,17 @@ import re
 # Maybe i'll remake in Unity or something
 
 class piece:
-    def __init__(self, ICON, SIDE, VALUE, NAME):
+    def __init__(self, ICON, SIDE, VALUE, NAME, SPRITE):
         self.icon = ICON
         self.side = SIDE
         self.value = VALUE
         self.fullName = NAME
+        self.sprite = SPRITE
     icon = str
     side = bool
     value = int
     fullName = str
+    sprite = str
 
 def parser(inp):
     global move, previous_move, input_error, running, piece_dictionary, skip_input
@@ -424,19 +426,19 @@ def board():
     return line
 
 
-piece_dictionary = {0   : piece(    " ",    None,   None,   "Empty"         ),
-                    1   : piece(    "♟",   True,   1,      "White Pawn"    ),
-                    2   : piece(    "♞",   True,   3,      "White Knight"  ),
-                    3   : piece(    "♝",   True,   3,      "White Bishop"  ),
-                    4   : piece(    "♜",   True,   5,      "White Rook"    ),
-                    5   : piece(    "♛",   True,   9,      "White Queen"   ),
-                    6   : piece(    "♚",   True,   None,   "White King"    ),
-                    7   : piece(    "♙",   False,  1,      "Black Pawn"    ),
-                    8   : piece(    "♘",   False,  3,      "Black Knight"  ),
-                    9   : piece(    "♗",   False,  3,      "Black Bishop"  ),
-                    10  : piece(    "♖",   False,  5,      "Black Rook"    ),
-                    11  : piece(    "♕",   False,  9,      "Black Queen"   ),
-                    12  : piece(    "♔",   False,  None,   "Black King"    ),
+piece_dictionary = {0   : piece(    " ",    None,   None,   "Empty",        "Pieces/None.gif"),
+                    1   : piece(    "♟",   True,   1,      "White Pawn",   "Pieces/WhitePawn.gif"),
+                    2   : piece(    "♞",   True,   3,      "White Knight", "Pieces/WhiteKnight.gif"),
+                    3   : piece(    "♝",   True,   3,      "White Bishop", "Pieces/WhiteBishop.gif"),
+                    4   : piece(    "♜",   True,   5,      "White Rook",   "Pieces/WhiteRook.gif"),
+                    5   : piece(    "♛",   True,   9,      "White Queen",  "Pieces/WhiteQueen.gif"),
+                    6   : piece(    "♚",   True,   None,   "White King",   "Pieces/WhiteKing.gif"),
+                    7   : piece(    "♙",   False,  1,      "Black Pawn",   "Pieces/BlackPawn.gif"),
+                    8   : piece(    "♘",   False,  3,      "Black Knight", "Pieces/BlackKnight.gif"),
+                    9   : piece(    "♗",   False,  3,      "Black Bishop", "Pieces/BlackBishop.gif"),
+                    10  : piece(    "♖",   False,  5,      "Black Rook",   "Pieces/BlackRook.gif"),
+                    11  : piece(    "♕",   False,  9,      "Black Queen",  "Pieces/BlackQueen.gif"),
+                    12  : piece(    "♔",   False,  None,   "Black King",   "Pieces/BlackKing.gif"),
                     "P" : 1,
                     "N" : 2,
                     "B" : 3,
